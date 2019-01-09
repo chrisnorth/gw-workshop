@@ -1,0 +1,74 @@
+[
+  {
+    "Label": "1",
+    "Name": "Centaurus A",
+    "Distance_Mpc": "4",
+    "M1": "5",
+    "M2": "5",
+    "Redshift": "0.0009",
+    "Angle": "175.3"
+  },
+  {
+    "Label": "2",
+    "Name": "Abell 1631",
+    "Distance_Mpc": "190",
+    "M1": "30",
+    "M2": "15",
+    "Redshift": "0.0443",
+    "Angle": "46.9"
+  },
+  {
+    "Label": "3",
+    "Name": "NGC 3267",
+    "Distance_Mpc": "40",
+    "M1": "40",
+    "M2": "20",
+    "Redshift": "0.0093",
+    "Angle": "76.2"
+  },
+  {
+    "Label": "4",
+    "Name": "Messier 86",
+    "Distance_Mpc": "17",
+    "M1": "20",
+    "M2": "5",
+    "Redshift": "0.0040",
+    "Angle": "242.1"
+  },
+  {
+    "Label": "5",
+    "Name": "Arp 220",
+    "Distance_Mpc": "80",
+    "M1": "50",
+    "M2": "40",
+    "Redshift": "0.0187",
+    "Angle": "63.5"
+  },
+  {
+    "Label": "6",
+    "Name": "Messier 82",
+    "Distance_Mpc": "3.2",
+    "M1": "15",
+    "M2": "15",
+    "Redshift": "0.0007",
+    "Angle": "105.4"
+  },
+  {
+    "Label": "7",
+    "Name": "Fornax A",
+    "Distance_Mpc": "19",
+    "M1": "10",
+    "M2": "5",
+    "Redshift": "0.0044",
+    "Angle": "35.4"
+  },
+  {
+    "Label": "8",
+    "Name": "NGC 4991",
+    "Distance_Mpc": "100",
+    "M1": "50",
+    "M2": "20",
+    "Redshift": "0.0233",
+    "Angle": "334.1"
+  }
+]
