@@ -1,0 +1,3 @@
+[submodule "gwcat"]
+	path = python/gwcat
+	url = https://github.com/cardiffgravity/gwcat
