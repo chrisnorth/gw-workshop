@@ -423,6 +423,18 @@ for i in range(nd):
         
         #######################
         
+        levelfmt = workbook.add_format({'bold':True,'font_color':'black','font_size':18})
+        titlefmt = workbook.add_format({'bold':True,'font_color':'black','font_size':18,'align':'center'})
+        mrlabfmt = workbook.add_format({'bold':True,'font_color':'black','font_size':18,'align':'right'})
+        mrnumfmt = workbook.add_format({'bold':True,'font_color':'black','font_size':18,'align':'left','num_format':'0.00'})
+        if gcse:
+            level='Intermediate'
+        else:
+            level='Advanced'
+        chartsheet.write('A1',level,levelfmt)
+        chartsheet.write('D1','Dataset #{:d}'.format(i+1),titlefmt)
+        chartsheet.write('G1','Mass ratio:'.format(i),mrlabfmt)
+        chartsheet.write('H1',float('{:.2f}'.format(datasets['mratio'][i])),mrnumfmt)
         
         chartall = workbook.add_chart({'type': 'scatter','subtype':'straight'})
         chartall.add_series({'name':'Waveform',
@@ -450,10 +462,10 @@ for i in range(nd):
             'minor_gridlines':{'visible':True,'line':{'width':1,'dash_type':'dash'}},
         })
         chartall.set_y_axis({'name': ylabel,'crossing':-ymaxall})
-        chartall.set_title({'name':'Dataset #{:.0f}'.format(i+1)})
+        # chartall.set_title({'name':'Dataset #{:.0f}'.format((i+1),datasets['mratio'][i])})
         chartall.set_legend({'position':'bottom','delete_series':[0]})
         
-        chartsheet.insert_chart('A2', chartall)
+        chartsheet.insert_chart('A3', chartall)
         
         
         #######################
@@ -533,7 +545,7 @@ for i in range(nd):
             'crossing':-ymaxmrg
         })
         chartmrgB.set_size({'y_scale':0.7})
-        chartmrgB.set_title({'name':'Slice 2 (Detector A) [τ=0]'})
+        chartmrgB.set_title({'name':'Slice 2 (Detector B) [τ=0]'})
         chartmrgB.set_legend({'none':True})
         chartsheet.insert_chart('A48', chartmrgB)
         
@@ -693,7 +705,10 @@ for i in range(nd):
         axbg.annotate(r'Mass ratio: %.2f'%(datasets['mratio'][i]),(0.98,0.98),\
             ha='right',va='top',fontsize='large')
         if gcse:
-            axbg.annotate('GCSE',(0.02,0.98),\
+            axbg.annotate('Intermediate',(0.02,0.98),\
+                ha='left',va='top',fontsize='x-large')
+        else:
+            axbg.annotate('Advanced',(0.02,0.98),\
                 ha='left',va='top',fontsize='x-large')
 
         axbg.set_xticks([])
