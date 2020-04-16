@@ -24,15 +24,22 @@ def add_noise(data,sigma=1e-19,seed=None):
     if seed!=None:
         random.seed(seed)
     noise=random.normal(0,sigma,len(data))
-    data['h_re']=data['h_re']+(1./sqrt(2))*noise
-    data['h_im']=data['h_im']+(1./sqrt(2))*noise
+    if 'h_re' in data.colnames:
+        data['h_re']=data['h_re']+(1./sqrt(2))*noise
+        data['h_im']=data['h_im']+(1./sqrt(2))*noise
+    else:
+        data['hp']=data['hp']+(1./sqrt(2))*noise
+        data['hc']=data['hc']+(1./sqrt(2))*noise
     return(data)
 
 def set_dist(data,distOut,distIn=1.e6):
     # adjust amplitude to match distance
-    data['h_re']=data['h_re'] / (distOut/distIn)
-    data['h_im']=data['h_im'] / (distOut/distIn)
-    data['modh']=data['modh'] / (distOut/distIn)
+    for c in ['h_re','h_im','modh','hp','hc']:
+        if c in data.colnames:
+            data[c] = data[c] / (distOut/distIn)
+    # data['h_re']=data['h_re'] / (distOut/distIn)
+    # data['h_im']=data['h_im'] / (distOut/distIn)
+    # data['modh']=data['modh'] / (distOut/distIn)
     return(data)
 
 def add_zeros(data,length=1):
@@ -64,6 +71,10 @@ def getIdx(data,t):
 
 def getHre(data,tIn):
     # interpolate data to get value of h_re at t=tIn
+    if 'h_re' in data.colnames:
+        hcol='h_re'
+    else:
+        hcol='hp'
     i0=getIdx(data, tIn)
     t0=data['t'][i0]
     if i0>=len(data):
@@ -72,14 +83,17 @@ def getHre(data,tIn):
         i1=i0+1
     t1=data['t'][i1]
     dt=t1-t0
-    h0=data['h_re'][i0]
-    h1=data['h_re'][i1]
+    h0=data[hcol][i0]
+    h1=data[hcol][i1]
     dh=h1-h0
     hOut=h0+(tIn-t0)*(dh)/(dt)
     return(hOut)
 
 def getHim(data,tIn):
-    # interpolate data to get value of h_re at t=tIn
+    # interpolate data to get value of h_im at t=tIn
+    if not 'h_im' in data.colnames:
+        return()
+
     i0=getIdx(data, tIn)
     t0=data['t'][i0]
     if i0>=len(data):
@@ -94,6 +108,7 @@ def getHim(data,tIn):
 
 def getModH(data,tIn):
     # interpolate data to get value of modh at t=tIn
+    hcol='modh'
     i0=getIdx(data, tIn)
     t0=data['t'][i0]
     if i0>=len(data)-1:
@@ -101,8 +116,8 @@ def getModH(data,tIn):
     else:
         i1=i0+1
     t1=data['t'][i1]
-    modh0=data['modh'][i0]
-    modh1=data['modh'][i1]
+    modh0=data[hcol][i0]
+    modh1=data[hcol][i1]
     modhOut=modh0+(tIn-t0)*(modh1-modh0)/(t1-t0)
     return(modhOut)
 
@@ -110,15 +125,19 @@ def getFreq(data,tInit):
     # get frequency at t=tInit
     i0=getIdx(data,tInit)
     t0=data['t'][i0]
-    h0=data['h_re'][i0]
+    if 'h_re' in data.colnames:
+        hcol='h_re'
+    else:
+        hcol='hp'
+    h0=data[hcol][i0]
     #work backwards to find a zero
     negFound=False
     while not negFound:
         t0=data['t'][i0]
-        h0=data['h_re'][i0]
+        h0=data[hcol][i0]
         i1=i0-1
         t1=data['t'][i1]
-        h1=data['h_re'][i1]
+        h1=data[hcol][i1]
         if sign(h1)==sign(h0):
             i0=i1
             continue
@@ -132,10 +151,10 @@ def getFreq(data,tInit):
         posFound=False
         while not posFound:
             t0=data['t'][i0]
-            h0=data['h_re'][i0]
+            h0=data[hcol][i0]
             i1=i0+1
             t1=data['t'][i1]
-            h1=data['h_re'][i1]
+            h1=data[hcol][i1]
             if sign(h1)==sign(h0):
                 i0=i1
                 continue
@@ -151,10 +170,10 @@ def getFreq(data,tInit):
         negFound2=False
         while not negFound2:
             t0=data['t'][i0]
-            h0=data['h_re'][i0]
+            h0=data[hcol][i0]
             i1=i0-1
             t1=data['t'][i1]
-            h1=data['h_re'][i1]
+            h1=data[hcol][i1]
             if sign(h1)==sign(h0):
                 i0=i1
                 continue

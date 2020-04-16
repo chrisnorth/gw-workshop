@@ -1,0 +1,82 @@
+[
+  {
+    "Label": "1",
+    "Name": "GW170608",
+    "Mratio":"1.5",
+    "Distance_Mpc": "320",
+    "M1": "11",
+    "M2": "7.5",
+    "Redshift": "0.07",
+    "Angle": "155.3"
+  },
+  {
+    "Label": "2",
+    "Name": "GW151226",
+    "Distance_Mpc": "440",
+    "M1": "14",
+    "M2": "7",
+    "Mratio":"2",
+    "Redshift": "0.09",
+    "Angle": "46.9"
+  },
+  {
+    "Label": "3",
+    "Name": "GW151012",
+    "Distance_Mpc": "1100",
+    "M1": "23",
+    "M2": "14",
+    "Mratio":"2",
+    "Redshift": "0.2",
+    "Angle": "76.2"
+  },
+  {
+    "Label": "4",
+    "Name": "GW170104",
+    "Distance_Mpc": "960",
+    "M1": "30",
+    "M2": "20",
+    "Mratio":"1.5",
+    "Redshift": "0.19",
+    "Angle": "242.1"
+  },
+  {
+    "Label": "5",
+    "Name": "GW170814",
+    "Distance_Mpc": "580",
+    "M1": "30",
+    "M2": "25",
+    "Mratio":"1.2",
+    "Redshift": "0.12",
+    "Angle": "63.5"
+  },
+  {
+    "Label": "6",
+    "Name": "GW170729",
+    "Distance_Mpc": "2800",
+    "M1": "50",
+    "M2": "35",
+    "Mratio":"1.4",
+    "Redshift": "0.48",
+    "Angle": "105.4"
+  },
+  {
+    "Label": "7",
+    "Name": "GW150914",
+    "Distance_Mpc": "430",
+    "M1": "35",
+    "M2": "30",
+    "Mratio":"1.16",
+    "Redshift": "0.09",
+    "Angle": "35.4"
+  },
+  {
+    "Label": "8",
+    "Name": "GW170823",
+    "Distance_Mpc": "1900",
+    "M1": "40",
+    "M2": "30",
+    "Mratio":"1.3",
+    "Redshift": "0.34",
+    "Angle": "334.1"
+  }
+]

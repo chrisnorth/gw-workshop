@@ -6,10 +6,25 @@ import gwcat
 import numpy as np
 import json
 import os
+import argparse
 import matplotlib.pyplot as plot
 from pycbc.waveform import get_td_waveform
 from astropy.table import Table
 plot.ion()
+
+
+parser=argparse.ArgumentParser(description='Plot waveform plots')
+parser.add_argument('-f','--freqmin',action='store',type=float,default=0,help='set min freq to plot')
+parser.add_argument('-c','--csv',action='store_true',help='set to output csv files')
+parser.add_argument('--minm',action='store',type=float,default=0,help='set to set minimum mass to process')
+args=parser.parse_args()
+
+freqmin=args.freqmin
+docsv=args.csv
+minm=args.minm
+fsuff=''
+if freqmin>0:
+    fsuff+='_{}'.format(freqmin)
 
 dataDir='gwcat/data/'
 gwc=gwcat.GWCat(os.path.join('gwcat/data/','events.json'))
@@ -56,6 +71,9 @@ for d in wfs:
     m1=wfs[d]['M1']
     m2=wfs[d]['M2']
     mch=wfs[d]['Mchirp']
+    if mch < minm:
+        print('skipping d ({} < {})'.format(mch,minm))
+        continue
     K0=2.7e17 #Msun^5 s^-5
 
     if m1+m2 > 67:
@@ -67,6 +85,9 @@ for d in wfs:
     else:
         tres=1.0/8192
         f_lower=30
+    if freqmin>0:
+        f_lower=freqmin
+
     wfs[d]['fmin']=f_lower
     f30=30
     f25=25
@@ -91,7 +112,10 @@ for d in wfs:
                      distance=wfs[d]['DL'])
     t= hp.sample_times
     wfs[d]['data']=Table({'t':t,'hp':hp,'hc':hc})
-    wfs[d]['data'].write('full-data/waveform_{}.csv'.format(d),format='ascii.csv',overwrite=True)
+    if docsv:
+        wfs[d]['data'].write('full-data/waveform_{}{}.csv'.format(d,fsuff),format='ascii.csv',overwrite=True)
+    else:
+        wfs[d]['data'].write('full-data/waveform_{}{}.fits'.format(d,fsuff),overwrite=True)
     print('  produced {:.2f}s from {:.2f}Hz'.format(-t[0],f_lower))
 for d in wfs:
     if 'data' in wfs[d]:
@@ -105,7 +129,10 @@ for d in wfs:
         for l in range(len(wfs[d]['data2'])):
             wfs[d]['data2'][l]['t']=round(wfs[d]['data2'][l]['t'],5)
             wfs[d]['data2'][l]['strain*1e23']=round(wfs[d]['data2'][l]['strain*1e23'],1)
-        wfs[d]['data2'].write('compressed/waveform_{}_compress.txt'.format(d),format='ascii.basic',delimiter=" ",overwrite=True)
+        if docsv:
+            wfs[d]['data2'].write('compressed/waveform_{}{}_compress.txt'.format(d,fsuff),format='ascii.basic',delimiter=" ",overwrite=True)
+        else:
+            wfs[d]['data2'].write('compressed/waveform_{}{}_compress.fits'.format(d,fsuff),overwrite=True)
 
 i=0
 plot.figure(1)
@@ -122,8 +149,9 @@ plot.xlim(-0.5,0)
 ms=[]
 rs=[]
 for d in wfs:
-    ms.append(wfs[d]['Mchirp'])
-    rs.append(-wfs[d]['tmin']/wfs[d]['data2']['t'][0])
+    if 'data2' in wfs[d] and 'tmin' in wfs[d]:
+        ms.append(wfs[d]['Mchirp'])
+        rs.append(-wfs[d]['tmin']/wfs[d]['data2']['t'][0])
 plot.figure(2)
 plot.clf()
 plot.plot(ms,rs,'x')
