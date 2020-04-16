@@ -2,13 +2,14 @@
 
 import waveform as wv
 import localisation as loc
-from numpy import array,zeros_like,linspace,arange,log10,pi,sqrt,zeros,ceil,round,mean,random,floor
+from numpy import array,zeros_like,linspace,arange,log10,pi,sqrt,zeros,ceil,round,mean,random,floor,ceil
 from scipy import where
 import matplotlib.pyplot as plot
 import matplotlib.patches as patches
 from matplotlib.ticker import AutoMinorLocator
 from astropy import constants
 from astropy.table import Table,Column
+import pandas as pd
 import argparse
 import os
 import json
@@ -23,6 +24,7 @@ parser.add_argument('-l','--latex',action='store_true',help='set to write latex'
 parser.add_argument('-n','--noplot',action='store_true',help='set to not make plots')
 parser.add_argument('--nonoise',action='store_true',help='set to not make plots')
 parser.add_argument('-g','--gcse',action='store_true',help='set to make GCSE versions')
+parser.add_argument('-x','--excel',action='store_true',help='set to output Excel files')
 
 args=parser.parse_args()
 
@@ -33,6 +35,7 @@ latex=args.latex
 noplot=args.noplot
 nonoise=args.nonoise
 gcse=args.gcse
+excel=args.excel
 filesuff=''
 if realdata:
     filesuff+='_realdata'
@@ -271,7 +274,7 @@ for i in range(nd):
     # data=wv.set_dist(data,1.e6)
     data_noise=data.copy()
     if not nonoise:
-        print('Adding noise')
+        print('Adding noise to {}'.format(datasets['galname'][i]))
         if realdata:
             if gcse:
                 sigma=1.e-23
@@ -328,11 +331,244 @@ for i in range(nd):
     tctrs[i]=tctr
     irngs[i]=irng
     irngsplot[i]=irngplot
+    tmrg=0.03 * sqrt(datasets['mchirp'][i]/5)
+    imrg=[wv.getIdx(data,-tmrg),wv.getIdx(data,tmrg)]
     hctrs[i]=hctr
     tplotarr[i]=-tctr
     fplotarr[i]=fctr
     hplotarr[i]=hctr
 
+    if (excel):
+        # output Excel files
+        if gcse:
+            yscale=1e22
+        else:
+            scales=-round(log10(max(data[hcol][irngs[i][0]:irngs[i][1]])))
+            yscale_exp=scales
+            yscale=10**yscale_exp
+        if nonoise:
+            df=pd.DataFrame({
+                'time (s)':data['t'],
+                'strain':data[hcol]*yscale
+            })
+        else:
+            df=pd.DataFrame({
+                'time (s)':data_noise['t'],
+                'strain':data_noise[hcol]*yscale
+            })
+            # excelOut='../Datasets/Dataset_{}_noise.xlsx'.format(i+1)
+        excelOut='../Datasets/Dataset_{}{}.xlsx'.format(i+1,filesuff)
+        writer = pd.ExcelWriter(excelOut, engine='xlsxwriter')
+        
+        workbook=writer.book
+        chartsheet=workbook.add_worksheet('Plots')
+        worksheet=workbook.add_worksheet('Data')
+        worksheet.write('A1','time (s)')
+        worksheet.write_column('A2',df['time (s)'])
+        worksheet.write('B1','strain')
+        worksheet.write_column('B2',df['strain'])
+        
+        # make detector timestreams
+        for d in ['A','B','C']:
+            didx=wv.getIdx(data,datasets['relt'+d][i])-wv.getIdx(data,0)
+            if didx==0:
+                dh=df['strain']
+            elif didx < 0:
+                dh=zeros_like(df['strain'])
+                dh[0:didx]=df['strain'][-didx-1:-1]
+                # dh[didx:-1]=0;
+            elif didx > 0:
+                dh=zeros_like(df['strain'])
+                # dh[0:didx]=0;
+                dh[didx:-1]=df['strain'][0:-didx-1]
+            df['det {} plot'.format(d)]=dh
+        
+        worksheet.write('C1','det A plot')
+        worksheet.write_column('C2',df['det A plot'])
+        worksheet.write('D1','det B plot')
+        worksheet.write_column('D2',df['det B plot'])
+        if not gcse:
+            worksheet.write('E1','det C plot')
+            worksheet.write_column('E2',df['det C plot'])
+        
+        #######################
+        ymaxall=max(abs(df['strain']))
+        ymaxall=10**(floor(log10(ymaxall)))*ceil(ymaxall/10**(floor(log10(ymaxall))))
+        ymaxsl=max(abs(df['strain'][irngsplot[i][0]:irngsplot[i][1]]))
+        ymaxsl=10**(floor(log10(ymaxsl)))*ceil(ymaxsl/10**(floor(log10(ymaxsl))))    
+        ymaxmrg=max(abs(df['strain'][imrg[0]:imrg[1]]))
+        ymaxmrg=10**(floor(log10(ymaxmrg)))*ceil(ymaxmrg/10**(floor(log10(ymaxmrg))))
+        if ymaxmrg > 5:
+            ytmrg = 2
+        else:
+            ytmrg=1
+        
+        
+        worksheet.write_row('F1',['Slice','Min','Max','Boxx1','Boxx2','Boxx3','Boxx4','Boxx5','Boxy1','Boxy2','Boxy3','Boxy4','Boxy5'])
+        worksheet.write_row('F2',[1,trngplot[0],trngplot[1],
+            trngplot[0],trngplot[0],trngplot[1],trngplot[1],trngplot[0],
+            -ymaxsl,ymaxsl,ymaxsl,-ymaxsl,-ymaxsl])
+        worksheet.write_row('F3',[2,-tmrg,tmrg,
+            -tmrg,-tmrg,tmrg,tmrg,-tmrg,
+            -ymaxmrg,ymaxmrg,ymaxmrg,-ymaxmrg,-ymaxmrg])
+        
+        #######################
+        
+        if gcse:
+            ylabel='Strain'
+            lwsl=1
+        else:
+            ylabel='Strain (x 10^{:.0f})'.format(-yscale_exp)
+            lwsl=0.25
+        
+        #######################
+        
+        
+        chartall = workbook.add_chart({'type': 'scatter','subtype':'straight'})
+        chartall.add_series({'name':'Waveform',
+            'categories':['Data',1,0,len(df)+1,0],
+            'values':['Data',1,1,len(df)+1,1],
+            'line':   {'width': 0.25},
+        })
+        chartall.add_series({'name':'Slice 1 [τ={:.1f}]'.format(tctrs[i]),
+            'categories':['Data',1,8,1,13],
+            'values':['Data',1,13,1,17],
+            'line':{'width':2,'color':'green','transparency':50}
+        })
+        chartall.add_series({'name':'Slice 2 [τ=0]',
+            'categories':['Data',2,8,2,13],
+            'values':['Data',2,13,2,17],
+            'line':{'width':2,'color':'red','transparency':50}
+        })
+        chartall.set_x_axis({'name': 'Time (s)',
+            'min':ceil(min(df['time (s)'])),'max':0.1,
+            'crossing':ceil(min(df['time (s)'])),
+            'num_format': '0.0',
+            'major_unit': 1.0,'minor_unit': 0.1,
+            'major_tick_mark':'outside','minor_tick_mark':'outside',
+            'major_gridlines':{'visible':True,'line':{'width':1}},
+            'minor_gridlines':{'visible':True,'line':{'width':1,'dash_type':'dash'}},
+        })
+        chartall.set_y_axis({'name': ylabel,'crossing':-ymaxall})
+        chartall.set_title({'name':'Dataset #{:.0f}'.format(i+1)})
+        chartall.set_legend({'position':'bottom','delete_series':[0]})
+        
+        chartsheet.insert_chart('A2', chartall)
+        
+        
+        #######################
+        
+        chartslice = workbook.add_chart({'type': 'scatter','subtype':'straight'})
+        chartslice.add_series({
+            'categories':['Data',irngsplot[i][0]+1,0,irngsplot[i][1]+1,0],
+            'values':['Data',irngsplot[i][0]+1,1,irngsplot[i][1]+1,1],
+            'line':   {'width': lwsl},
+        })
+        chartslice.set_x_axis({'name': 'Time (s)',
+            'min':trngplot[0],'max':trngplot[1],
+            'crossing':trngplot[0],
+            'num_format': '0.0',
+            'major_unit': 0.1,'minor_unit': 0.01,
+            'major_tick_mark':'outside','minor_tick_mark':'outside',
+            'major_gridlines':{'visible':True,'line':{'width':1}},
+            'minor_gridlines':{'visible':True,'line':{'width':1,'dash_type':'dash'}},
+        })
+        chartslice.set_y_axis({'name': ylabel,
+            'min':-ymaxsl,'max':ymaxsl,
+            'crossing':-ymaxsl,
+        })
+        chartslice.set_title({'name':'Slice 1 [τ={:.1f}]'.format(tctrs[i])})
+        chartslice.set_legend({'none':True})
+        chartsheet.insert_chart('A18', chartslice)
+        
+        #######################
+
+        #######################
+
+        chartmrgA = workbook.add_chart({'type': 'scatter','subtype':'straight'})
+        chartmrgA.add_series({
+            'categories':['Data',imrg[0]+1,0,imrg[1]+1,0],
+            'values':['Data',imrg[0]+1+1,2,imrg[1]+1,2],
+            'line':   {'width': 1,'color':'red'},
+        })
+        chartmrgA.set_x_axis({'name': 'Time (s)',
+            'num_format': '0.00',
+            'min':-tmrg,'max':tmrg,
+            'crossing':-tmrg,
+            'major_unit': 0.01,'minor_unit': 0.001,
+            'major_tick_mark':'outside','minor_tick_mark':'outside',
+            'major_gridlines':{'visible':True,'line':{'width':1}},
+            'minor_gridlines':{'visible':True,'line':{'width':1,'dash_type':'dash'}},
+        })
+        chartmrgA.set_y_axis({'name': ylabel,
+            'min':-ymaxmrg,'max':ymaxmrg,
+            'major_unit':ytmrg,
+            'crossing':-ymaxmrg
+        })
+        chartmrgA.set_size({'y_scale':0.7})
+        chartmrgA.set_title({'name':'Slice 2 (Detector A) [τ=0]'})
+        chartmrgA.set_legend({'none':True})
+        chartsheet.insert_chart('A36', chartmrgA)
+        
+        #######################
+        
+        chartmrgB = workbook.add_chart({'type': 'scatter','subtype':'straight'})
+        chartmrgB.add_series({
+            'categories':['Data',imrg[0]+1,0,imrg[1]+1,0],
+            'values':['Data',imrg[0]+1+1,3,imrg[1]+1,3],
+            'line':   {'width': 1,'color':'green'},
+        })
+        chartmrgB.set_x_axis({'name': 'Time (s)',
+            'num_format': '0.00',
+            'min':-tmrg,'max':tmrg,
+            'crossing':-tmrg,
+            'major_unit': 0.01,'minor_unit': 0.001,
+            'major_tick_mark':'outside','minor_tick_mark':'outside',
+            'major_gridlines':{'visible':True,'line':{'width':1}},
+            'minor_gridlines':{'visible':True,'line':{'width':1,'dash_type':'dash'}},
+        })
+        chartmrgB.set_y_axis({'name': ylabel,
+            'min':-ymaxmrg,'max':ymaxmrg,
+            'major_unit':ytmrg,
+            'crossing':-ymaxmrg
+        })
+        chartmrgB.set_size({'y_scale':0.7})
+        chartmrgB.set_title({'name':'Slice 2 (Detector A) [τ=0]'})
+        chartmrgB.set_legend({'none':True})
+        chartsheet.insert_chart('A48', chartmrgB)
+        
+        #######################
+        
+        if not gcse:
+            chartmrgC = workbook.add_chart({'type': 'scatter','subtype':'straight'})
+            chartmrgC.add_series({
+                'categories':['Data',imrg[0]+1,0,imrg[1]+1,0],
+                'values':['Data',imrg[0]+1+1,4,imrg[1]+1,4],
+                'line':   {'width': 1,'color':'blue'},
+            })
+            chartmrgC.set_x_axis({'name': 'Time (s)',
+                'num_format': '0.00',
+                'min':-tmrg,'max':tmrg,
+                'crossing':-tmrg,
+                'major_unit': 0.01,'minor_unit': 0.001,
+                'major_tick_mark':'outside','minor_tick_mark':'none',
+                'major_gridlines':{'visible':True,'line':{'width':1}},
+                'minor_gridlines':{'visible':True,'line':{'width':1,'dash_type':'dash'}},
+            })
+            chartmrgC.set_y_axis({'name': ylabel,
+                'min':-ymaxmrg,'max':ymaxmrg,
+                'major_unit':ytmrg,
+                'crossing':-ymaxmrg
+            })
+            chartmrgC.set_size({'y_scale':0.7})
+            chartmrgC.set_title({'name':'Slice 2 (Detector C) [τ=0]'})
+            chartmrgC.set_legend({'none':True})
+            chartsheet.insert_chart('A60', chartmrgC)
+        
+        #######################
+        
+        writer.save()
+    
     if not noplot:
         fig=plot.figure(i+1,figsize=(8,11))
         fig.clf()
@@ -473,7 +709,7 @@ for i in range(nd):
         # plot.ylim(-hctrs[-1],hctrs[-1])
 
         plot.show()
-
+    
 mchplotarr = K0.value**(8./5) * fplotarr**(-8./5.) * tplotarr**(-3./5.) / constants.M_sun.value
 mch5plotarr = mchplotarr**5.
 mch5plotarr_round = zeros_like(mch5plotarr)
